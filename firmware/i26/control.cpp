@@ -92,9 +92,6 @@ void loop_400Hz(void)
   static uint8_t led=1;
   S_time=time_us_32();
   
-  //割り込みフラグリセット
-  pwm_clear_irq(2);
-
 
   if (Arm_flag==0)
   {
