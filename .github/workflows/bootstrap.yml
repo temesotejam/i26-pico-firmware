@@ -5,7 +5,8 @@ on:
     branches:
       - main
     paths:
-      - ".bootstrap/i26-source.zip"
+      - ".bootstrap/parts/**"
+      - ".github/workflows/bootstrap.yml"
 
 permissions:
   contents: write
@@ -18,13 +19,23 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v6
 
+      - name: Reconstruct and verify I-26 source archive
+        shell: bash
+        run: |
+          set -euxo pipefail
+          ARCHIVE="${RUNNER_TEMP}/i26-source.zip"
+          cat .bootstrap/parts/part* | tr -d '\r\n' | base64 --decode > "${ARCHIVE}"
+          test "$(stat -c '%s' "${ARCHIVE}")" = "40212"
+          echo "2498501864d65987f7df0eb5a0d2253c1c1182cdabb46d5413d873794fee469b  ${ARCHIVE}" | sha256sum --check
+          unzip -t "${ARCHIVE}"
+
       - name: Unpack uploaded I-26 source
         shell: bash
         run: |
           set -euxo pipefail
-          test -s .bootstrap/i26-source.zip
+          ARCHIVE="${RUNNER_TEMP}/i26-source.zip"
           mkdir -p firmware
-          unzip -oq .bootstrap/i26-source.zip -d firmware
+          unzip -oq "${ARCHIVE}" -d firmware
           test -f firmware/i26/CMakeLists.txt
           test -f firmware/i26/control.cpp
           test -f firmware/i26/lsm9ds1_reg.c
