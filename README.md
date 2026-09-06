@@ -22,7 +22,7 @@ i26-pico-firmware/
 │     ├─ radio.cpp/.hpp
 │     └─ lsm9ds1_reg.c/.h
 ├─ .github/workflows/
-│  └─ build.yml               ← Pico専用クラウドビルド
+│  └─ build.yml               ← Pico専用クラウドビルド + Pages公開
 ├─ web/                       ← UF2配布ページ
 └─ README.md
 ```
@@ -52,7 +52,11 @@ configure.log
 build.log
 ```
 
-ビルド成功時には同じ内容を `gh-pages` ブランチにも自動公開します。GitHub Pagesを使う場合は、Settings → Pagesで `Deploy from a branch`、`gh-pages` / `/ (root)` を一度選ぶだけです。
+## GitHub Pagesを有効にする
+
+最初の1回だけ、リポジトリの `Settings` → `Pages` → `Build and deployment` で `Source` を **GitHub Actions** に設定してください。
+
+その後は `main` のプログラムやビルド設定を更新するたびに、UF2のビルド成功後、GitHub Actionsが配布ページも自動更新します。配布ページには `i26-pico.uf2` と `i26-firmware-source.zip` の両方を置きます。
 
 ## Raspberry Pi Picoへの書き込み
 
