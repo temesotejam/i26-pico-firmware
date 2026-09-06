@@ -52,7 +52,7 @@ configure.log
 build.log
 ```
 
-GitHub Pagesを `GitHub Actions` に設定すると、同じUF2とソースZIPをWebページからダウンロードできます。
+ビルド成功時には同じ内容を `gh-pages` ブランチにも自動公開します。GitHub Pagesを使う場合は、Settings → Pagesで `Deploy from a branch`、`gh-pages` / `/ (root)` を一度選ぶだけです。
 
 ## Raspberry Pi Picoへの書き込み
 

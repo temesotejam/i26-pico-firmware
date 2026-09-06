@@ -1,0 +1,279 @@
+name: Build I-26 Pico firmware
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - "firmware/i26/**"
+      - "web/**"
+      - ".github/workflows/build.yml"
+      - "README.md"
+  pull_request:
+    paths:
+      - "firmware/i26/**"
+      - ".github/workflows/build.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: i26-pico-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PICO_SDK_REF: 2.3.0
+  EIGEN_VERSION: 3.4.0
+  EIGEN_REF: 3147391d946bb4b6c68edd901f2add6ac1f31f8c
+  CCACHE_MAXSIZE: 500M
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout I-26 repository
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Restore Pico SDK cache
+        id: pico-sdk-cache
+        uses: actions/cache@v4
+        with:
+          path: pico-sdk
+          key: pico-sdk-${{ runner.os }}-${{ env.PICO_SDK_REF }}
+
+      - name: Checkout Pico SDK on cache miss
+        if: steps.pico-sdk-cache.outputs.cache-hit != 'true'
+        uses: actions/checkout@v6
+        with:
+          repository: raspberrypi/pico-sdk
+          ref: ${{ env.PICO_SDK_REF }}
+          path: pico-sdk
+          submodules: recursive
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Disable push to Pico SDK remote
+        shell: bash
+        run: |
+          set -euxo pipefail
+          git -C pico-sdk remote set-url --push origin DISABLED
+
+      - name: Restore Eigen cache
+        id: eigen-cache
+        uses: actions/cache@v4
+        with:
+          path: third_party/eigen
+          key: eigen-${{ runner.os }}-${{ env.EIGEN_REF }}
+
+      - name: Checkout Eigen on cache miss
+        if: steps.eigen-cache.outputs.cache-hit != 'true'
+        shell: bash
+        run: |
+          set -euxo pipefail
+          rm -rf third_party/eigen
+          mkdir -p third_party
+          git clone \
+            --branch "${EIGEN_VERSION}" \
+            --depth 1 \
+            https://gitlab.com/libeigen/eigen.git \
+            third_party/eigen
+          test "$(git -C third_party/eigen rev-parse HEAD)" = "${EIGEN_REF}"
+          rm -rf third_party/eigen/.git
+
+      - name: Verify Eigen dependency
+        shell: bash
+        run: |
+          set -euxo pipefail
+          test -f third_party/eigen/Eigen/Dense
+
+      - name: Install ARM toolchain and ccache
+        shell: bash
+        run: |
+          set -euxo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install --yes --no-install-recommends \
+            ccache \
+            gcc-arm-none-eabi \
+            libnewlib-arm-none-eabi \
+            libstdc++-arm-none-eabi-newlib \
+            ninja-build \
+            zip
+
+      - name: Restore compiler cache
+        uses: actions/cache@v4
+        with:
+          path: .ccache
+          key: >-
+            ccache-${{ runner.os }}-i26-pico-${{ env.PICO_SDK_REF }}-${{ env.EIGEN_REF }}-${{ hashFiles('firmware/i26/**') }}
+          restore-keys: |
+            ccache-${{ runner.os }}-i26-pico-${{ env.PICO_SDK_REF }}-${{ env.EIGEN_REF }}-
+
+      - name: Configure build environment
+        shell: bash
+        run: |
+          set -euxo pipefail
+          echo "PICO_SDK_PATH=${GITHUB_WORKSPACE}/pico-sdk" >> "${GITHUB_ENV}"
+          echo "EIGEN3_INCLUDE_DIR=${GITHUB_WORKSPACE}/third_party/eigen" >> "${GITHUB_ENV}"
+          echo "CCACHE_DIR=${GITHUB_WORKSPACE}/.ccache" >> "${GITHUB_ENV}"
+          echo "CCACHE_BASEDIR=${GITHUB_WORKSPACE}" >> "${GITHUB_ENV}"
+          echo "CCACHE_NOHASHDIR=true" >> "${GITHUB_ENV}"
+          echo "CCACHE_COMPILERCHECK=content" >> "${GITHUB_ENV}"
+          mkdir -p "${GITHUB_WORKSPACE}/.ccache"
+          CCACHE_DIR="${GITHUB_WORKSPACE}/.ccache" ccache --set-config=max_size="${CCACHE_MAXSIZE}"
+          CCACHE_DIR="${GITHUB_WORKSPACE}/.ccache" ccache --set-config=compression=true
+          CCACHE_DIR="${GITHUB_WORKSPACE}/.ccache" ccache --zero-stats
+
+      - name: Configure I-26 firmware
+        shell: bash
+        run: |
+          set -o pipefail
+          cmake \
+            -S firmware/i26 \
+            -B build \
+            -G Ninja \
+            -DPICO_SDK_PATH="${PICO_SDK_PATH}" \
+            -DEIGEN3_INCLUDE_DIR="${EIGEN3_INCLUDE_DIR}" \
+            -DPICO_BOARD=pico \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_C_COMPILER_LAUNCHER=ccache \
+            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
+            2>&1 | tee configure.log
+
+      - name: Build I-26 UF2
+        shell: bash
+        run: |
+          set -o pipefail
+          {
+            cmake --build build \
+              --target i26 \
+              --parallel "$(nproc)"
+            test -s build/i26.uf2
+            echo
+            echo "=== ccache statistics ==="
+            ccache --show-stats
+          } 2>&1 | tee build.log
+
+      - name: Prepare UF2 and portable source package
+        shell: bash
+        run: |
+          set -euxo pipefail
+
+          rm -rf output site
+          mkdir -p output site/firmware
+          cp -a web/. site/
+
+          cp build/i26.uf2 output/i26-pico.uf2
+          cp build/i26.uf2 site/firmware/i26-pico.uf2
+
+          (
+            cd firmware
+            zip -qr ../output/i26-firmware-source.zip i26 \
+              -x 'i26/build/*' 'i26/.DS_Store'
+          )
+          cp output/i26-firmware-source.zip site/firmware/i26-firmware-source.zip
+
+          UF2_SHA256="$(sha256sum output/i26-pico.uf2 | cut -d ' ' -f 1)"
+          UF2_SIZE="$(stat -c '%s' output/i26-pico.uf2)"
+          BUILT_AT="$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+
+          printf '%s  %s\n' "${UF2_SHA256}" "i26-pico.uf2" > output/i26-pico.uf2.sha256
+          cp output/i26-pico.uf2.sha256 site/firmware/i26-pico.uf2.sha256
+          printf '%s\n' "${UF2_SIZE}" > output/size.txt
+          cp output/size.txt site/firmware/size.txt
+          cp configure.log build.log output/
+
+          export UF2_SHA256 UF2_SIZE BUILT_AT
+          python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          manifest = {
+              "appId": "i26",
+              "appName": "I-26",
+              "description": "I-26 firmware for Raspberry Pi Pico (RP2040)",
+              "boardId": "pico",
+              "boardName": "Raspberry Pi Pico",
+              "uf2File": "i26-pico.uf2",
+              "sourceArchive": "i26-firmware-source.zip",
+              "size": int(os.environ["UF2_SIZE"]),
+              "sha256": os.environ["UF2_SHA256"],
+              "sourceCommit": os.environ["GITHUB_SHA"],
+              "sourcePath": "firmware/i26",
+              "picoSdkRef": os.environ["PICO_SDK_REF"],
+              "eigenVersion": os.environ["EIGEN_VERSION"],
+              "eigenRef": os.environ["EIGEN_REF"],
+              "builtAt": os.environ["BUILT_AT"],
+              "repository": os.environ["GITHUB_REPOSITORY"],
+          }
+
+          text = json.dumps(manifest, ensure_ascii=False, indent=2) + "\n"
+          Path("output/manifest.json").write_text(text, encoding="utf-8")
+          Path("site/firmware/manifest.json").write_text(text, encoding="utf-8")
+          PY
+
+      - name: Upload I-26 build artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: i26-pico-build-${{ github.run_number }}
+          path: output
+          if-no-files-found: error
+          retention-days: 30
+          compression-level: 0
+
+      - name: Upload generated web site for publishing
+        if: github.ref == 'refs/heads/main'
+        uses: actions/upload-artifact@v7
+        with:
+          name: i26-pages-site
+          path: site
+          if-no-files-found: error
+          retention-days: 1
+          compression-level: 0
+
+  publish:
+    if: github.ref == 'refs/heads/main'
+    needs: build
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository for gh-pages publish
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Download generated web site
+        uses: actions/download-artifact@v8
+        with:
+          name: i26-pages-site
+          path: ${{ runner.temp }}/i26-pages-site
+
+      - name: Publish to gh-pages branch
+        shell: bash
+        run: |
+          set -euxo pipefail
+          SITE_DIR="${RUNNER_TEMP}/i26-pages-site"
+          test -f "${SITE_DIR}/index.html"
+          test -s "${SITE_DIR}/firmware/i26-pico.uf2"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout --orphan gh-pages
+          git rm -rf . || true
+          find . -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf {} +
+          cp -a "${SITE_DIR}/." .
+          touch .nojekyll
+          git add -A
+          git commit -m "Publish I-26 firmware ${GITHUB_SHA::12}"
+          git push --force origin gh-pages

@@ -1,0 +1,13 @@
+.DS_Store
+build/
+**/build/
+.ccache/
+pico-sdk/
+third_party/
+output/
+site/
+*.uf2
+*.elf
+*.bin
+*.hex
+*.map
