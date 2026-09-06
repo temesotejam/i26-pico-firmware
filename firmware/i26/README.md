@@ -51,6 +51,34 @@ If `EIGEN3_INCLUDE_DIR` is not supplied, CMake downloads the fixed Eigen revisio
 -DEIGEN3_INCLUDE_DIR=/path/to/eigen
 ```
 
+## PWM outputs
+
+The PWM GPIO assignment is centralized in `pwm.hpp`.
+
+| Output | GPIO | Pico physical pin |
+|---|---:|---:|
+| RL (Rear Left) | 2 | 4 |
+| RR (Rear Right) | 3 | 5 |
+| FL (Front Left) | 4 | 6 |
+| FR (Front Right) | 5 | 7 |
+| Servo | 6 | 9 |
+
+PWM slice and channel numbers are **not hard-coded**. `pwm.cpp` derives them from each GPIO with the Pico SDK helpers `pwm_gpio_to_slice_num()`, `pwm_gpio_to_channel()`, and `pwm_set_gpio_level()`.
+
+To change the wiring, edit only these definitions in `pwm.hpp`:
+
+```cpp
+constexpr uint PWM_PIN_RL    = 2;
+constexpr uint PWM_PIN_RR    = 3;
+constexpr uint PWM_PIN_FL    = 4;
+constexpr uint PWM_PIN_FR    = 5;
+constexpr uint PWM_PIN_SERVO = 6;
+```
+
+The 400 Hz control-loop IRQ uses `PWM_MAINLOOP_PIN`, currently tied to `PWM_PIN_FL`, so its PWM slice also follows the GPIO assignment automatically.
+
+When changing PWM pins, avoid GPIOs already used by other I-26 functions: UART uses GPIO 0/1, the LSM9DS1 uses GPIO 8/9/10/11/13, and the onboard LED uses GPIO 25. Also avoid choosing two GPIOs that map to the same PWM slice **and** channel; `pwm_init()` checks for this and stops at startup if such a collision is detected.
+
 ## Pico and LSM9DS1 wiring
 
 | Raspberry Pi Pico | LSM9DS1 board | Purpose |
