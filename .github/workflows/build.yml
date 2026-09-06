@@ -1,4 +1,4 @@
-name: Build I-26 Pico firmware
+name: Build I-26 Pico firmware and deploy Pages
 
 on:
   workflow_dispatch:
@@ -229,51 +229,30 @@ jobs:
           retention-days: 30
           compression-level: 0
 
-      - name: Upload generated web site for publishing
+      - name: Configure Pages
         if: github.ref == 'refs/heads/main'
-        uses: actions/upload-artifact@v7
-        with:
-          name: i26-pages-site
-          path: site
-          if-no-files-found: error
-          retention-days: 1
-          compression-level: 0
+        uses: actions/configure-pages@v5
 
-  publish:
+      - name: Upload Pages artifact
+        if: github.ref == 'refs/heads/main'
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: site
+
+  deploy:
     if: github.ref == 'refs/heads/main'
     needs: build
     runs-on: ubuntu-latest
 
     permissions:
-      contents: write
+      pages: write
+      id-token: write
+
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
 
     steps:
-      - name: Checkout repository for gh-pages publish
-        uses: actions/checkout@v6
-        with:
-          fetch-depth: 0
-
-      - name: Download generated web site
-        uses: actions/download-artifact@v8
-        with:
-          name: i26-pages-site
-          path: ${{ runner.temp }}/i26-pages-site
-
-      - name: Publish to gh-pages branch
-        shell: bash
-        run: |
-          set -euxo pipefail
-          SITE_DIR="${RUNNER_TEMP}/i26-pages-site"
-          test -f "${SITE_DIR}/index.html"
-          test -s "${SITE_DIR}/firmware/i26-pico.uf2"
-
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git checkout --orphan gh-pages
-          git rm -rf . || true
-          find . -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf {} +
-          cp -a "${SITE_DIR}/." .
-          touch .nojekyll
-          git add -A
-          git commit -m "Publish I-26 firmware ${GITHUB_SHA::12}"
-          git push --force origin gh-pages
+      - name: Deploy GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
