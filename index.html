@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>I-26 Pico Firmware</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main class="card">
+    <p class="eyebrow">Raspberry Pi Pico / RP2040</p>
+    <h1>I-26 Firmware</h1>
+    <p class="lead">伊-26用フライトコントローラの最新ビルドです。</p>
+
+    <div class="actions">
+      <a class="primary" href="firmware/i26-pico.uf2" download>UF2をダウンロード</a>
+      <a href="firmware/i26-firmware-source.zip" download>プログラム本体ZIP</a>
+    </div>
+
+    <dl id="build-info">
+      <div><dt>Board</dt><dd>Raspberry Pi Pico</dd></div>
+      <div><dt>Build</dt><dd id="built-at">読み込み中…</dd></div>
+      <div><dt>UF2 size</dt><dd id="uf2-size">—</dd></div>
+      <div><dt>Commit</dt><dd id="commit">—</dd></div>
+    </dl>
+
+    <p class="note">書き込み時はBOOTSELを押したままPicoをUSB接続し、表示されたRPI-RP2ドライブへUF2をコピーします。</p>
+    <p class="small"><a href="firmware/manifest.json">manifest.json</a> · <a href="firmware/i26-pico.uf2.sha256">SHA-256</a></p>
+  </main>
+  <script src="app.js"></script>
+</body>
+</html>

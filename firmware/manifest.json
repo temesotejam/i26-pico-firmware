@@ -1,0 +1,18 @@
+{
+  "appId": "i26",
+  "appName": "I-26",
+  "description": "I-26 firmware for Raspberry Pi Pico (RP2040)",
+  "boardId": "pico",
+  "boardName": "Raspberry Pi Pico",
+  "uf2File": "i26-pico.uf2",
+  "sourceArchive": "i26-firmware-source.zip",
+  "size": 176128,
+  "sha256": "1e397b78df974ee1cc1477942771b13bfb25dfbf0ea8f1e20ff3fd6979433885",
+  "sourceCommit": "59119d1a7f00f6d5299f5005e8a4844cc3edd931",
+  "sourcePath": "firmware/i26",
+  "picoSdkRef": "2.3.0",
+  "eigenVersion": "3.4.0",
+  "eigenRef": "3147391d946bb4b6c68edd901f2add6ac1f31f8c",
+  "builtAt": "2026-09-06T02:39:40Z",
+  "repository": "temesotejam/i26-pico-firmware"
+}
