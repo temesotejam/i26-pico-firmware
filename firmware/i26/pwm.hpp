@@ -20,8 +20,8 @@
 // Change only these GPIO numbers when the wiring is changed.
 constexpr uint PWM_PIN_RL    = 2;
 constexpr uint PWM_PIN_RR    = 3;
-constexpr uint PWM_PIN_FL    = 4;
-constexpr uint PWM_PIN_FR    = 5;
+constexpr uint PWM_PIN_FL    = 14;
+constexpr uint PWM_PIN_FR    = 15;
 constexpr uint PWM_PIN_SERVO = 6;
 
 // The main 400 Hz control loop is driven by the PWM wrap IRQ of this output.
