@@ -399,10 +399,10 @@ void rate_control(void)
   // 1250/11.1=112.6
   // 1/11.1=0.0901
   
-  FR_duty = (T_ref +(-P_com +Q_com -R_com)*0.25)*0.0901;
-  FL_duty = (T_ref +( P_com +Q_com +R_com)*0.25)*0.0901;
-  RR_duty = (T_ref +(-P_com -Q_com +R_com)*0.25)*0.0901;
-  RL_duty = (T_ref +( P_com -Q_com -R_com)*0.25)*0.0901;
+  FR_duty = (T_ref +(-P_com +Q_com +R_com)*0.25)*0.0901;
+  FL_duty = (T_ref +( P_com +Q_com -R_com)*0.25)*0.0901;
+  RR_duty = (T_ref +(-P_com -Q_com -R_com)*0.25)*0.0901;
+  RL_duty = (T_ref +( P_com -Q_com +R_com)*0.25)*0.0901;
   //FR_duty = (T_ref)*0.0901;
   //FL_duty = (T_ref)*0.0901;
   //RR_duty = (T_ref)*0.0901;
