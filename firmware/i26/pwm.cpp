@@ -83,6 +83,14 @@ uint16_t motor_duty_to_level(float duty)
 
     return (uint16_t)level;
 }
+
+void pwm_wrap_irq_handler()
+{
+    // Keep PWM-specific IRQ handling in this module. The control loop does not
+    // need to know which slice is used as its 400 Hz timing source.
+    pwm_clear_irq(pwm_gpio_to_slice_num(PWM_MAINLOOP_PIN));
+    MAINLOOP();
+}
 } // namespace
 
 void pwm_init()
@@ -104,7 +112,7 @@ void pwm_init()
     const uint mainloop_slice = pwm_gpio_to_slice_num(PWM_MAINLOOP_PIN);
     pwm_clear_irq(mainloop_slice);
     pwm_set_irq_enabled(mainloop_slice, true);
-    irq_set_exclusive_handler(PWM_IRQ_WRAP, MAINLOOP);
+    irq_set_exclusive_handler(PWM_IRQ_WRAP, pwm_wrap_irq_handler);
     irq_set_enabled(PWM_IRQ_WRAP, true);
 
     // ESC initial/calibration level.
