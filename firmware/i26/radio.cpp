@@ -75,39 +75,39 @@ void on_uart_rx(void) {
         switch(chars_rxed){
             case 3:
                 Chdata[0]=(sbus_data[1]|(sbus_data[2]<<8)&0x07ff);
-                //printf("%04d ",Chdata[0]);
+                printf("%04d ",Chdata[0]);
                 break;
             case 4:
                 Chdata[1]=(sbus_data[3]<<5|sbus_data[2]>>3)&0x07ff;
-                //printf("%04d ",Chdata[1]);
+                printf("%04d ",Chdata[1]);
                 break;
             case 6:
                 Chdata[2]=(sbus_data[3]>>6|sbus_data[4]<<2|sbus_data[5]<<10)&0x07ff;
-                //printf("%04d ",Chdata[2]);
+                printf("%04d ",Chdata[2]);
                 break;
             case 7:
                 Chdata[3]=(sbus_data[6]<<7|sbus_data[5]>>1)&0x07ff;
-                //printf("%04d ",Chdata[3]);
+                printf("%04d ",Chdata[3]);
                 break;
             case 8:
                 Chdata[4]=(sbus_data[7]<<4|sbus_data[6]>>4)&0x07ff;
-                //printf("%04d ",Chdata[4]);
+                // printf("%04d ",Chdata[4]);
                 break;
             case 10:
                 Chdata[5]=(sbus_data[7]>>7|sbus_data[8]<<1|sbus_data[9]<<9)&0x07ff;
-                //printf("%04d ",Chdata[5]);
+                // printf("%04d ",Chdata[5]);
                 break;
             case 11:
                 Chdata[6]  = ((sbus_data[9]>>2|sbus_data[10]<<6) & 0x07FF);
-                //printf("%04d ",Chdata[6]);
+                // printf("%04d ",Chdata[6]);
                 break;
             case 12:
                 Chdata[7]  = ((sbus_data[10]>>5|sbus_data[11]<<3) & 0x07FF);
-                //printf("%04d ",Chdata[7]);
+                // printf("%04d ",Chdata[7]);
                 break;
             case 14:
                 Chdata[8]  = ((sbus_data[12]|sbus_data[13]<< 8) & 0x07FF);
-                //printf("%04d ",Chdata[8]);
+                // printf("%04d ",Chdata[8]);
                 break;
             case 15:
                 Chdata[9]  = ((sbus_data[13]>>3|sbus_data[14]<<5) & 0x07FF);
@@ -146,7 +146,7 @@ void on_uart_rx(void) {
         if(chars_rxed==25){
             Chdata[17]=sbus_data[24];
             //printf("%04d ",Chdata[17]);
-            //printf("\n");
+            printf("\n");
             chars_rxed=0;
         }
     }
