@@ -1,5 +1,5 @@
 /*
- * pwm.phh 
+ * pwm.hpp
  * Header file for PWM function
 */
 #ifndef PWM_HPP
@@ -15,6 +15,17 @@
 //#define DUTYMAX 2500
 #define DUTYMIN 1375
 #define DUTYMAX 2375
+
+// PWM output GPIO assignment.
+// Change only these GPIO numbers when the wiring is changed.
+constexpr uint PWM_PIN_RL    = 2;
+constexpr uint PWM_PIN_RR    = 3;
+constexpr uint PWM_PIN_FL    = 4;
+constexpr uint PWM_PIN_FR    = 5;
+constexpr uint PWM_PIN_SERVO = 6;
+
+// The main 400 Hz control loop is driven by the PWM wrap IRQ of this output.
+constexpr uint PWM_MAINLOOP_PIN = PWM_PIN_FL;
 
 //グローバル変数
 extern uint8_t ESC_calib;
