@@ -146,7 +146,7 @@ void on_uart_rx(void) {
         if(chars_rxed==25){
             Chdata[17]=sbus_data[24];
             //printf("%04d ",Chdata[17]);
-            printf("\n");
+            // printf("\n");
             chars_rxed=0;
         }
     }
