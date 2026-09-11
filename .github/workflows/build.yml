@@ -147,21 +147,22 @@ jobs:
             -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
             2>&1 | tee configure.log
 
-      - name: Build I-26 UF2
+      - name: Build I-26 UF2s
         shell: bash
         run: |
           set -o pipefail
           {
             cmake --build build \
-              --target i26 \
+              --target i26 i26_spi_diagnostic \
               --parallel "$(nproc)"
             test -s build/i26.uf2
+            test -s build/i26_spi_diagnostic.uf2
             echo
             echo "=== ccache statistics ==="
             ccache --show-stats
           } 2>&1 | tee build.log
 
-      - name: Prepare UF2 and portable source package
+      - name: Prepare UF2s and portable source package
         shell: bash
         run: |
           set -euxo pipefail
@@ -172,6 +173,8 @@ jobs:
 
           cp build/i26.uf2 output/i26-pico.uf2
           cp build/i26.uf2 site/firmware/i26-pico.uf2
+          cp build/i26_spi_diagnostic.uf2 output/i26-spi-diagnostic.uf2
+          cp build/i26_spi_diagnostic.uf2 site/firmware/i26-spi-diagnostic.uf2
 
           (
             cd firmware
@@ -182,15 +185,19 @@ jobs:
 
           UF2_SHA256="$(sha256sum output/i26-pico.uf2 | cut -d ' ' -f 1)"
           UF2_SIZE="$(stat -c '%s' output/i26-pico.uf2)"
+          DIAG_SHA256="$(sha256sum output/i26-spi-diagnostic.uf2 | cut -d ' ' -f 1)"
+          DIAG_SIZE="$(stat -c '%s' output/i26-spi-diagnostic.uf2)"
           BUILT_AT="$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
 
           printf '%s  %s\n' "${UF2_SHA256}" "i26-pico.uf2" > output/i26-pico.uf2.sha256
           cp output/i26-pico.uf2.sha256 site/firmware/i26-pico.uf2.sha256
+          printf '%s  %s\n' "${DIAG_SHA256}" "i26-spi-diagnostic.uf2" > output/i26-spi-diagnostic.uf2.sha256
+          cp output/i26-spi-diagnostic.uf2.sha256 site/firmware/i26-spi-diagnostic.uf2.sha256
           printf '%s\n' "${UF2_SIZE}" > output/size.txt
           cp output/size.txt site/firmware/size.txt
           cp configure.log build.log output/
 
-          export UF2_SHA256 UF2_SIZE BUILT_AT
+          export UF2_SHA256 UF2_SIZE DIAG_SHA256 DIAG_SIZE BUILT_AT
           python3 - <<'PY'
           import json
           import os
@@ -203,9 +210,12 @@ jobs:
               "boardId": "pico",
               "boardName": "Raspberry Pi Pico",
               "uf2File": "i26-pico.uf2",
+              "diagnosticUf2File": "i26-spi-diagnostic.uf2",
               "sourceArchive": "i26-firmware-source.zip",
               "size": int(os.environ["UF2_SIZE"]),
               "sha256": os.environ["UF2_SHA256"],
+              "diagnosticSize": int(os.environ["DIAG_SIZE"]),
+              "diagnosticSha256": os.environ["DIAG_SHA256"],
               "sourceCommit": os.environ["GITHUB_SHA"],
               "sourcePath": "firmware/i26",
               "picoSdkRef": os.environ["PICO_SDK_REF"],
