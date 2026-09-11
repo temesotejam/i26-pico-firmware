@@ -35,19 +35,32 @@ void imu_mag_init(void)
                   PIN_CSM  /* CSM  Pin number */ 
   );
 
+  /*
+   * LSM9DS1 uses SPI mode 3 (CPOL=1, CPHA=1).
+   * pico-sdk spi_init() defaults to mode 0, so the format must be
+   * explicitly changed after platform_init() has initialized SPI1.
+   */
+  spi_set_format(spi1, 8, SPI_CPOL_1, SPI_CPHA_1, SPI_MSB_FIRST);
+
   /* Wait sensor boot time */
   platform_delay(BOOT_TIME);
   sleep_ms(1000);
 
-  /* Check device ID */
-  lsm9ds1_dev_id_get(&Mag_h, &Imu_h, &whoamI);
+  /* Check device ID. Retry so a wiring/contact problem is visible in the log
+   * and the controller can recover if the sensor becomes available later. */
+  while (1) {
+    lsm9ds1_dev_id_get(&Mag_h, &Imu_h, &whoamI);
 
-  if (whoamI.imu != LSM9DS1_IMU_ID || whoamI.mag != LSM9DS1_MAG_ID) {
-    while (1) {
-      /* manage here device not found */
-      printf("Device not found !\n");
-      sleep_ms(1000);
+    printf("#LSM9DS1 WHO_AM_I A/G=0x%02X (expected 0x%02X) MAG=0x%02X (expected 0x%02X)\n",
+           whoamI.imu, LSM9DS1_IMU_ID, whoamI.mag, LSM9DS1_MAG_ID);
+
+    if (whoamI.imu == LSM9DS1_IMU_ID && whoamI.mag == LSM9DS1_MAG_ID) {
+      printf("#LSM9DS1 detected\n");
+      break;
     }
+
+    printf("Device not found !\n");
+    sleep_ms(1000);
   }
 
   /* Restore default configuration */
