@@ -13,7 +13,8 @@
     <p class="lead">伊-26用フライトコントローラの最新ビルドです。</p>
 
     <div class="actions">
-      <a class="primary" href="firmware/i26-pico.uf2" download>UF2をダウンロード</a>
+      <a class="primary" href="firmware/i26-pico.uf2" download>通常UF2をダウンロード</a>
+      <a href="firmware/i26-spi-diagnostic.uf2" download>LSM9DS1 SPI診断UF2</a>
       <a href="firmware/i26-firmware-source.zip" download>プログラム本体ZIP</a>
     </div>
 
@@ -24,8 +25,9 @@
       <div><dt>Commit</dt><dd id="commit">—</dd></div>
     </dl>
 
+    <p class="note">SPI診断UF2はモータやフライト制御を開始せず、GP8/9/10/11/13の静的レベル試験とソフトウェアSPIによるLSM9DS1 WHO_AM_I確認だけを行います。Tera Termを開いた状態でPicoを再起動すると診断手順が表示されます。</p>
     <p class="note">書き込み時はBOOTSELを押したままPicoをUSB接続し、表示されたRPI-RP2ドライブへUF2をコピーします。</p>
-    <p class="small"><a href="firmware/manifest.json">manifest.json</a> · <a href="firmware/i26-pico.uf2.sha256">SHA-256</a></p>
+    <p class="small"><a href="firmware/manifest.json">manifest.json</a> · <a href="firmware/i26-pico.uf2.sha256">通常UF2 SHA-256</a> · <a href="firmware/i26-spi-diagnostic.uf2.sha256">診断UF2 SHA-256</a></p>
   </main>
   <script src="app.js"></script>
 </body>
