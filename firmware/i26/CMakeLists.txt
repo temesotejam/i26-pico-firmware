@@ -72,3 +72,18 @@ target_link_libraries(i26 PRIVATE
 pico_enable_stdio_usb(i26 1)
 pico_enable_stdio_uart(i26 0)
 pico_add_extra_outputs(i26)
+
+# Standalone hardware-diagnostic firmware. This deliberately avoids the normal
+# flight-control code and hardware SPI so the LSM9DS1 wiring can be tested with
+# slow GPIO bit-banged SPI and a multimeter.
+add_executable(i26_spi_diagnostic
+    spi_diagnostic.cpp
+)
+
+target_link_libraries(i26_spi_diagnostic PRIVATE
+    pico_stdlib
+)
+
+pico_enable_stdio_usb(i26_spi_diagnostic 1)
+pico_enable_stdio_uart(i26_spi_diagnostic 0)
+pico_add_extra_outputs(i26_spi_diagnostic)
