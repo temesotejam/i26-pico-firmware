@@ -54,6 +54,10 @@ add_executable(i26
     pwm.cpp
     radio.cpp
     control.cpp
+    VL53L1X_api.c
+    vl53l1_platform.c
+    rgbled.cpp
+    WS2812.cpp
 )
 
 target_include_directories(i26 PRIVATE
@@ -65,6 +69,8 @@ target_link_libraries(i26 PRIVATE
     hardware_spi
     hardware_pwm
     hardware_uart
+    hardware_i2c
+    hardware_pio
     pico_stdlib
     pico_multicore
 )
@@ -72,18 +78,6 @@ target_link_libraries(i26 PRIVATE
 pico_enable_stdio_usb(i26 1)
 pico_enable_stdio_uart(i26 0)
 pico_add_extra_outputs(i26)
-
-# Standalone hardware-diagnostic firmware. This deliberately avoids the normal
-# flight-control code and hardware SPI so the LSM9DS1 wiring can be tested with
-# slow GPIO bit-banged SPI and a multimeter.
-add_executable(i26_spi_diagnostic
-    spi_diagnostic.cpp
+pico_generate_pio_header(i26
+    ${CMAKE_CURRENT_LIST_DIR}/WS2812.pio
 )
-
-target_link_libraries(i26_spi_diagnostic PRIVATE
-    pico_stdlib
-)
-
-pico_enable_stdio_usb(i26_spi_diagnostic 1)
-pico_enable_stdio_uart(i26_spi_diagnostic 0)
-pico_add_extra_outputs(i26_spi_diagnostic)

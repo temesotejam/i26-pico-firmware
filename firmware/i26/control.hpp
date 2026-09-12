@@ -28,10 +28,14 @@ void angle_control(void);
 void gyro_calibration(void);
 void variable_init(void);
 void log_output(void);
+void lotate_altitude_init(float Theta,float Psi,float Phi);
+float lotate_altitude(float l_distance);
 
 //グローバル変数
 extern uint8_t LockMode;
 extern volatile uint8_t Logoutputflag;
+extern float Phi,Theta,Psi;
+extern float lotated_distance;
 
 class PID
 {
