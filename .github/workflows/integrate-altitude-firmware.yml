@@ -6,6 +6,11 @@ on:
       - feature/tof-altitude-hold-led-integration
     paths:
       - ".github/workflows/integrate-altitude-firmware.yml"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/integrate-altitude-firmware.yml"
 
 permissions:
   contents: write
@@ -14,9 +19,10 @@ jobs:
   integrate:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout target repository
+      - name: Checkout target integration branch
         uses: actions/checkout@v6
         with:
+          ref: feature/tof-altitude-hold-led-integration
           fetch-depth: 0
 
       - name: Import altitude-control firmware body
