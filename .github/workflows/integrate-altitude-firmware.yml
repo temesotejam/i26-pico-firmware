@@ -135,14 +135,8 @@ jobs:
           # deliberately not part of this integrated firmware/distribution.
           rm -f firmware/i26/spi_diagnostic.cpp
 
-          # Restore the normal one-UF2 build/distribution framework from before
-          # the temporary SPI diagnostic target was added.
-          git show f1225252c9aabff998a398c7326e165e74a88003:.github/workflows/build.yml > .github/workflows/build.yml
+          # Restore the normal download page without the temporary SPI diagnostic link.
           git show f1225252c9aabff998a398c7326e165e74a88003:web/index.html > web/index.html
-
-          # This workflow is intentionally one-shot; do not leave migration
-          # machinery in the resulting branch.
-          rm -f .github/workflows/integrate-altitude-firmware.yml
 
       - name: Commit integrated firmware
         shell: bash
@@ -150,6 +144,10 @@ jobs:
           set -euxo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -A
+          git add firmware/i26 web/index.html
+          if git diff --cached --quiet; then
+            echo "Firmware is already integrated."
+            exit 0
+          fi
           git commit -m "Integrate ToF altitude-control firmware"
           git push origin HEAD:feature/tof-altitude-hold-led-integration
