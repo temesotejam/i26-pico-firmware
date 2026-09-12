@@ -7,6 +7,8 @@
 #include "pico/binary_info.h"
 #include "hardware/spi.h"
 #include "lsm9ds1_reg.h"
+#include "vl53l1_platform.h"
+#include "VL53L1X_api.h"
 
 //extern int16_t data_raw_acceleration[3];
 //extern int16_t data_raw_angular_rate[3];
@@ -34,6 +36,24 @@ extern float magnetic_field_mgauss[3];
 
 void imu_mag_init(void);
 void imu_mag_data_read(void);
+bool initialize_Altitude(void);
+bool get_Altitude(void);
+
+extern int8_t Status;
+extern int16_t OffsetValue;
+extern uint16_t dev;
+extern uint16_t distance;
+extern uint8_t isDataReady;
+extern uint8_t Temp2;
+extern uint8_t Temp;
+extern uint8_t IntPol;
+extern uint8_t data_count;
+extern uint8_t rangeStatus;
+extern uint8_t state;
+extern uint8_t tmp;
+extern uint8_t Kalman_distance;
+extern int sleep_time;
+extern int ms;
 
 
 #endif

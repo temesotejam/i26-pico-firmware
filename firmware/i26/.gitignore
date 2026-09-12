@@ -1,0 +1,16 @@
+
+
+# CMake build directory
+build/
+
+# Windows Zone.Identifier files
+*:Zone.Identifier
+
+# VS Code
+.vscode/
+
+# CMake files
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+Makefile

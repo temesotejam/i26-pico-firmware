@@ -26,10 +26,14 @@ int main(void)
   
   //Initilize Control
   control_init();
+
+  //ToFセンサの初期化
+  const bool altitude_available = initialize_Altitude();
+  printf("#ToF init=%s\n", altitude_available ? "OK" : "FAILED");
   
   //Initialize PWM
   //Start 400Hz Interval
-  ESC_calib=1;
+  ESC_calib=0;
   pwm_init();
 
   while(start_wait)
@@ -48,6 +52,16 @@ int main(void)
   
   while(1)
   {
+    // ToFセンサから値を取得
+    if (altitude_available)
+    {
+      if (get_Altitude())
+      {
+        lotate_altitude_init(Theta,Psi,Phi);
+        lotated_distance = lotate_altitude(distance);
+      }
+    }
+
     //printf("Arm_flag:%d LockMode:%d\n",Arm_flag, LockMode);
     tight_loop_contents();
     while (Logoutputflag==1){

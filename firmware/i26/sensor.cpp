@@ -1,5 +1,7 @@
 #include "sensor.hpp"
 
+#include "vl53l1_error_codes.h"
+
 int16_t data_raw_acceleration[3];
 int16_t data_raw_angular_rate[3];
 int16_t data_raw_magnetic_field[3];
@@ -15,6 +17,21 @@ sensbus_t Ins_bus={spi1, PIN_CSAG};
 sensbus_t Mag_bus={spi1, PIN_CSM};
 stmdev_ctx_t Imu_h;
 stmdev_ctx_t Mag_h;
+
+int8_t Status = 0;
+int16_t OffsetValue = 0;
+uint16_t dev = 0x29;
+uint16_t distance = 0;
+uint8_t data_count = 0;
+uint8_t isDataReady = 0;
+uint8_t rangeStatus = 0;
+uint8_t state = 0;
+uint8_t tmp = 0;
+uint8_t Kalman_distance = 0;
+int sleep_time = 2000;
+int ms = 200;
+
+
 
 //ローカル関数宣言
 void printData(void);
@@ -35,32 +52,19 @@ void imu_mag_init(void)
                   PIN_CSM  /* CSM  Pin number */ 
   );
 
-  /*
-   * LSM9DS1 uses SPI mode 3 (CPOL=1, CPHA=1).
-   * pico-sdk spi_init() defaults to mode 0, so the format must be
-   * explicitly changed after platform_init() has initialized SPI1.
-   */
-  spi_set_format(spi1, 8, SPI_CPOL_1, SPI_CPHA_1, SPI_MSB_FIRST);
-
   /* Wait sensor boot time */
   platform_delay(BOOT_TIME);
   sleep_ms(1000);
 
-  /* Check device ID. Retry so a wiring/contact problem is visible in the log
-   * and the controller can recover if the sensor becomes available later. */
-  while (1) {
-    lsm9ds1_dev_id_get(&Mag_h, &Imu_h, &whoamI);
+  /* Check device ID */
+  lsm9ds1_dev_id_get(&Mag_h, &Imu_h, &whoamI);
 
-    printf("#LSM9DS1 WHO_AM_I A/G=0x%02X (expected 0x%02X) MAG=0x%02X (expected 0x%02X)\n",
-           whoamI.imu, LSM9DS1_IMU_ID, whoamI.mag, LSM9DS1_MAG_ID);
-
-    if (whoamI.imu == LSM9DS1_IMU_ID && whoamI.mag == LSM9DS1_MAG_ID) {
-      printf("#LSM9DS1 detected\n");
-      break;
+  if (whoamI.imu != LSM9DS1_IMU_ID || whoamI.mag != LSM9DS1_MAG_ID) {
+    while (1) {
+      /* manage here device not found */
+      printf("Device not found !\n");
+      sleep_ms(1000);
     }
-
-    printf("Device not found !\n");
-    sleep_ms(1000);
   }
 
   /* Restore default configuration */
@@ -145,6 +149,105 @@ void printData(void)
             magnetic_field_mgauss[0], magnetic_field_mgauss[1],
             magnetic_field_mgauss[2]);
 }  
+
+bool initialize_Altitude(void)
+{
+  // printf("alt_1\r\n");
+  // stdio_init_all();
+  i2c_init(I2C_PORT,i2C_CLOCK);//ハードウェアの初期化
+  gpio_set_function(SDA_PIN,GPIO_FUNC_I2C);//GPIO機能をi2cに選択(SDA)
+  gpio_set_function(SCL_PIN,GPIO_FUNC_I2C);//GPIO機能をi2cに選択(SCL)
+  gpio_set_pulls(SDA_PIN, true, false);// enable internal pull-up of SDA_PIN=GP26
+  gpio_set_pulls(SCL_PIN, true, false);// enable internal pull-up of SCL_PIN=GP27
+  // printf("alt_2\r\n");
+  // /* Platform Initialization code here*/
+  // /* Wait for device booted*/
+  sleep_ms(3000);
+  uint64_t boot_timeout_us = time_us_64() + sleep_time * 1000ULL;
+  while((state&1) == 0 && time_us_64() < boot_timeout_us) {
+    Status = VL53L1X_BootState(dev, &state);
+    if(Status != 0)
+    {
+      return false;
+    }
+    sleep_ms(ms);
+  };
+  if((state&1) == 0)
+  {
+    Status = VL53L1_ERROR_TIME_OUT;
+    return false;
+  }
+  // printf("alt_3\r\n");
+  // /* Sensor Initialization */
+  Status = VL53L1X_SensorInit(dev);
+  if(Status != 0)
+  {
+    return false;
+  }
+  // /* Modify the default configuration */
+  // // Status = VL53L1X_SetInterMeasurementPeriod();
+  // Status = VL53L1X_SetOffset(dev,OffsetValue);
+  Status = VL53L1X_SetDistanceMode(dev,2);
+  if(Status != 0)
+  {
+    return false;
+  }
+  Status = VL53L1X_SetTimingBudgetInMs(dev,20);
+  if(Status != 0)
+  {
+    return false;
+  }
+  Status = VL53L1X_SetInterMeasurementInMs(dev,20);
+  if(Status != 0)
+  {
+    return false;
+  }
+  //Enable the ranging
+  Status = VL53L1X_StartRanging(dev);
+  if(Status != 0)
+  {
+    return false;
+  }
+  printf("alt_4\r\n");
+  return true;
+}
+
+bool get_Altitude(void)
+{
+  // while(isDataReady==0)
+  // {
+  //   Status = VL53L1X_CheckForDataReady(dev, &isDataReady);
+  // }
+
+  Status = VL53L1X_CheckForDataReady(dev, &isDataReady);
+  if(Status != 0)
+  {
+    return false;
+  }
+  if(isDataReady == 0)
+  {
+    return false;
+  }
+
+  isDataReady =0;
+  Status = VL53L1X_GetRangeStatus(dev,&rangeStatus);
+  if(Status != 0)
+  {
+    return false;
+  }
+  Status = VL53L1X_GetDistance(dev,&distance);
+  if(Status != 0)
+  {
+    return false;
+  }
+  Status = VL53L1X_ClearInterrupt(dev);
+  if(Status != 0)
+  {
+    return false;
+  }
+  //printf("%9.6f %4d\n",(current_time-start_time)/1000000.0,distance);
+  return true;
+}
 
 
 #if 0

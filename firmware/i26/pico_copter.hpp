@@ -11,6 +11,7 @@
 #include "pwm.hpp"
 #include "radio.hpp"
 #include "control.hpp"
+#include "rgbled.hpp"
 #include <math.h>
 
 #define LED_PIN 25
@@ -21,4 +22,3 @@ extern uint8_t Arm_flag;
 extern semaphore_t sem;
 
 #endif
-

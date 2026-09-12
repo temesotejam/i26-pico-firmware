@@ -45,12 +45,20 @@ Matrix<float, 6, 6> R;// = MatrixXf::Identity(6, 6)*0.0001;
 Matrix<float, 7 ,6> G;
 Matrix<float, 3 ,1> Beta;
 
+Matrix<float, 3 ,3> lotate_mat = MatrixXf::Zero(3,3);
+float f_distance = 0;
+float f_distance2 = 0;
+float f_distance3 = 0;
+float lotated_distance = 0;
+Matrix<float, 1 ,3> distance_mat = MatrixXf::Zero(1,3);
+Matrix<float, 1 ,3> f_distance_mat = MatrixXf::Zero(1,3);
+
 //Log
 uint16_t LogdataCounter=0;
 uint8_t Logflag=0;
 volatile uint8_t Logoutputflag=0;
 float Log_time=0.0;
-const uint8_t DATANUM=38; //Log Data Number
+const uint8_t DATANUM=43; //Log Data Number
 const uint32_t LOGDATANUM=48000;
 float Logdata[LOGDATANUM]={0.0};
 
@@ -287,13 +295,23 @@ void control_init(void)
 {
   acc_filter.set_parameter(0.005, 0.0025);
   //Rate control
-  p_pid.set_parameter( 2.0, 0.145, 0.028, 0.015, 0.0025);//3.4
-  q_pid.set_parameter( 2.1, 0.125, 0.028, 0.015, 0.0025);//3.8
-  r_pid.set_parameter(12.0, 0.5, 0.008, 0.015, 0.0025);//9.4
-  //Angle control
-  phi_pid.set_parameter  ( 5.5, 9.5, 0.025, 0.018, 0.01);//6.0
-  theta_pid.set_parameter( 5.5, 9.5, 0.025, 0.018, 0.01);//6.0
-  psi_pid.set_parameter  ( 0.0, 10.0, 0.010, 0.03, 0.01);
+  // p_pid.set_parameter( 2.0, 0.145, 0.028, 0.015, 0.0025);//3.4
+  // q_pid.set_parameter( 2.1, 0.125, 0.028, 0.015, 0.0025);//3.8
+  // r_pid.set_parameter(12.0, 0.5, 0.008, 0.015, 0.0025);//9.4
+  // //Angle control
+  // phi_pid.set_parameter  ( 5.5, 9.5, 0.025, 0.018, 0.01);//6.0
+  // theta_pid.set_parameter( 5.5, 9.5, 0.025, 0.018, 0.01);//6.0
+  // psi_pid.set_parameter  ( 0.0, 10.0, 0.010, 0.03, 0.01);
+
+  
+  p_pid.set_parameter(1.05, 1000000.0, 0.0, 0.125, 0.0025); //ikaring(2.2, 5, 0.01) itocopter(2.5, 100, 0.009)
+  q_pid.set_parameter(1.05, 1000000.0, 0.0, 0.125, 0.0025); //ikaring(1.5, 1, 0.01) itocopter(2.5, 100, 0.009)
+  r_pid.set_parameter(0.21, 10000.0, 0.0, 0.125, 0.0025);  //ikaring(3.1, 1, 0.01) itocopter(3.5, 10, 0.009)
+  // Angle control
+  phi_pid.set_parameter(2.1, 1000.0, 0.013, 0.125, 0.01);   // 6.0  8.0,20,0.007      //1
+  theta_pid.set_parameter(2.1, 1000.0, 0.013, 0.125, 0.01); // 6.0  8.0,20,0.007 // 1.6      
+  psi_pid.set_parameter(0, 1000, 0, 0, 0.01);     //0 1000 0.01
+  
   //Rate control
   //p_pid.set_parameter(3.3656, 0.1, 0.0112, 0.01, 0.0025);
   //q_pid.set_parameter(3.8042, 0.1, 0.0111, 0.01, 0.0025);
@@ -360,6 +378,30 @@ void motor_stop(void)
   set_duty_rl(0.0);
 }
 
+void lotate_altitude_init(float Theta,float Psi,float Phi){
+  lotate_mat(0,0) = cos(Theta)*cos(Psi);
+  lotate_mat(0,1) = cos(Theta)*sin(Psi);
+  lotate_mat(0,2) = -sin(Theta);
+  lotate_mat(1,0) = (sin(Phi)*sin(Theta)*cos(Psi))-(cos(Phi)*sin(Psi));
+  lotate_mat(1,1) = (sin(Phi)*sin(Theta)*sin(Psi)) + (cos(Phi) * cos(Psi));
+  lotate_mat(1,2) = sin(Phi)*cos(Theta);
+  lotate_mat(2,0) = (cos(Phi)*sin(Theta)*cos(Psi)) + (sin(Phi)*sin(Psi));
+  lotate_mat(2,1) = (cos(Phi)*sin(Theta)*sin(Psi)) - (sin(Phi)*cos(Psi));
+  lotate_mat(2,2) = cos(Phi)*cos(Theta);
+}
+
+float lotate_altitude(float l_distance){
+  // distance_mat(0,0) = 0;
+  // distance_mat(0,1) = 0;
+  distance_mat(0,2) = l_distance;
+  f_distance_mat =  distance_mat * lotate_mat;
+  f_distance = f_distance_mat(0,0);
+  f_distance2 = f_distance_mat(0,1);
+  f_distance3 = f_distance_mat(0,2);
+
+  return f_distance3;
+}
+
 void rate_control(void)
 {
   float p_rate, q_rate, r_rate;
@@ -399,10 +441,10 @@ void rate_control(void)
   // 1250/11.1=112.6
   // 1/11.1=0.0901
   
-  FR_duty = (T_ref +(-P_com +Q_com +R_com)*0.25)*0.0901;
-  FL_duty = (T_ref +( P_com +Q_com -R_com)*0.25)*0.0901;
-  RR_duty = (T_ref +(-P_com -Q_com -R_com)*0.25)*0.0901;
-  RL_duty = (T_ref +( P_com -Q_com +R_com)*0.25)*0.0901;
+  FR_duty = (T_ref +(-P_com +Q_com +R_com))*0.9;
+  FL_duty = (T_ref +( P_com +Q_com -R_com))*0.9;
+  RR_duty = (T_ref +(-P_com -Q_com -R_com))*0.9;
+  RL_duty = (T_ref +( P_com -Q_com +R_com))*0.9;
   //FR_duty = (T_ref)*0.0901;
   //FL_duty = (T_ref)*0.0901;
   //RR_duty = (T_ref)*0.0901;
@@ -588,6 +630,11 @@ void logging(void)
       Logdata[LogdataCounter++]=Rbias;                    //36
       Logdata[LogdataCounter++]=T_ref;                    //37
       Logdata[LogdataCounter++]=Acc_norm;                 //38
+      Logdata[LogdataCounter++]=distance;                 //39
+      Logdata[LogdataCounter++]=lotated_distance;         //40
+      Logdata[LogdataCounter++]=Phi;                      //41
+      Logdata[LogdataCounter++]=Theta;                    //42
+      Logdata[LogdataCounter++]=rangeStatus;              //43
 
    
     }
