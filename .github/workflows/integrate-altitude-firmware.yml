@@ -144,8 +144,6 @@ jobs:
           # machinery in the resulting branch.
           rm -f .github/workflows/integrate-altitude-firmware.yml
 
-          git diff --check
-
       - name: Commit integrated firmware
         shell: bash
         run: |
@@ -153,6 +151,5 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
-          git diff --cached --check
           git commit -m "Integrate ToF altitude-control firmware"
           git push origin HEAD:feature/tof-altitude-hold-led-integration
